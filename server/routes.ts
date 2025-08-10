@@ -2170,6 +2170,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download complete GitHub-ready project
+  app.get('/api/download/github-project', enhancedAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims ? req.user.claims.sub : req.user.id);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const filePath = path.join(process.cwd(), 'hackathon-hub-github-ready.tar.gz');
+      const fs = await import('fs/promises');
+      
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ error: 'GitHub project archive not found' });
+      }
+
+      res.setHeader('Content-Type', 'application/gzip');
+      res.setHeader('Content-Disposition', 'attachment; filename="hackathon-hub-github-ready.tar.gz"');
+      
+      const fileStream = createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Error downloading GitHub project:', error);
+      res.status(500).json({ error: 'Failed to download GitHub project' });
+    }
+  });
+
+  // Download missing GitHub files (README, DEPLOYMENT, LICENSE, .gitignore)
+  app.get('/api/download/missing-files', enhancedAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims ? req.user.claims.sub : req.user.id);
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const filePath = path.join(process.cwd(), 'missing-github-files.tar.gz');
+      const fs = await import('fs/promises');
+      
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ error: 'Missing files archive not found' });
+      }
+
+      res.setHeader('Content-Type', 'application/gzip');
+      res.setHeader('Content-Disposition', 'attachment; filename="missing-github-files.tar.gz"');
+      
+      const fileStream = createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Error downloading missing files:', error);
+      res.status(500).json({ error: 'Failed to download missing files' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
